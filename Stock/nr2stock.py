@@ -1,5 +1,8 @@
 from datetime import date, datetime, timedelta
 import urllib
+import sys
+import re
+import datetime
 
 def valid_market_date(check_date):
     # If we run into a market holiday, just go back a day until we're open
@@ -60,7 +63,8 @@ def get_historical_data(symbol, get_date=None):
             }
     else:
         trading_period = 'd'
-        # Output: Date,Open,High,Low,Close,Volume,Adj Close
+        # Per http://www.jarloo.com/get-historical-stock-data/:
+        #   Output: Date,Open,High,Low,Close,Volume,Adj Close
         url = 'http://ichart.yahoo.com/table.csv?s=%s&a=%s&b=%s&c=%s&d=%s&e=%s&f=%s&g=%s&ignore=.csv' % ( \
             symbol, \
             get_date.month-1, \
@@ -75,8 +79,58 @@ def get_historical_data(symbol, get_date=None):
         u.readline()
         data = u.readline()
         arg_list = data.split(',')
+        print arg_list
         return {
             'open': float(arg_list[1]),
             'close': float(arg_list[2]),
             }
 
+
+def get_historical_data_all(symbol, get_date=None):
+    if get_date.strftime("%Y-%m-%d")==date.today().strftime("%Y-%m-%d") or get_date is None: # get current day
+        # opening price, current price
+        url = "http://finance.yahoo.com/d/quotes.csv?s=%s&f=ol1" % ( \
+            symbol, \
+            )
+        u = urllib.urlopen(url)
+        data = u.readline()
+        arg_list = []
+        for arg in data.split(','):
+            arg_list.append(float(arg))
+        return {
+            'open': arg_list[0],
+            'close': arg_list[1],
+            }
+    else:
+        trading_period = 'd'
+        # Per http://www.jarloo.com/get-historical-stock-data/:
+        #   Output: Date,Open,High,Low,Close,Volume,Adj Close
+        url = 'http://ichart.yahoo.com/table.csv?s=%s&a=%s&b=%s&c=%s&d=%s&e=%s&f=%s&g=%s&ignore=.csv' % ( \
+            symbol, \
+            get_date.month-1, \
+            get_date.day, \
+            get_date.year, \
+            get_date.month-1, \
+            get_date.day, \
+            get_date.year, \
+            trading_period, \
+            )
+        u = urllib.urlopen(url)
+        u.readline()
+        data = u.readline()
+        if re.search( r'404 Not Found', data):
+            print 'symbol not found %s' % (symbol)
+            print url
+            sys.exit()
+
+        arg_list = data.split(',')
+
+        return {
+            'date': str(arg_list[0]),
+            'open': '%.2f' % float(arg_list[1]),
+            'high': '%.2f' % float(arg_list[2]),
+            'low': '%.2f' % float(arg_list[3]),
+            'close': '%.2f' % float(arg_list[4]),
+            'volume': int(arg_list[5]),
+            'adj_close': '%.2f' % float(arg_list[6]),
+            }
