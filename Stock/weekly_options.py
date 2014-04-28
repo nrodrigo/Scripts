@@ -734,6 +734,8 @@ data = []
 i=1
 get_date = start_date
 
+write_file = "./output/weekly.sql"
+file = open(write_file, "w")
 while get_date.date() < datetime.today().date():
     for symbol in symbol_order:
         if symbol_list.get(symbol, None) is None:
@@ -745,22 +747,10 @@ while get_date.date() < datetime.today().date():
         print "Processing %s %s" % (symbol_list.get(symbol, None), get_date.strftime("%Y-%m-%d"))
 
         get_data = nr2stock.get_historical_data_all(symbol_list[symbol], get_date)
-        write_file = "./output/weekly.sql"
-        file = open(write_file, "w")
-        insert_string =  "insert into quotes set symbol='%s', close_date='%s', open='%s', high='%s', low='%s', close='%s', volume='%s', adj_close='%s';" \
+        #insert_string =  "insert into quotes set symbol='%s', close_date='%s', open='%s', high='%s', low='%s', close='%s', volume='%s', adj_close='%s';" \
+        insert_string =  "%s,%s,%s,%s,%s,%s,%s,%s\n" \
             % (symbol_list[symbol], get_data['date'], get_data['open'], get_data['high'], get_data['low'], get_data['close'], get_data['volume'], get_data['adj_close'])
         file.write(insert_string)
     get_date += timedelta(days=1)
+file.close()
 
-
-# filename:
-#   output_(date_of_markettrend_list)_(date_report_run)_(timestamp).csv
-#write_file = "./output/output_%s_%s_%s.csv" % (markettrend_date, start_date.strftime("%Y%m%d"), datetime.now().strftime("%Y%m%d%H%M%S"))
-#file = open(write_file, "w")
-#file.write(','.join(headers)+"\n")
-#for row in data:
-#    get_row = []
-#    for header in headers:
-#        get_row.append(str(row[header]))
-#    file.write(','.join(get_row)+"\n")
-#file.close()
