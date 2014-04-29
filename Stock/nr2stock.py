@@ -89,17 +89,24 @@ def get_historical_data(symbol, get_date=None):
 def get_historical_data_all(symbol, get_date=None):
     if get_date.strftime("%Y-%m-%d")==date.today().strftime("%Y-%m-%d") or get_date is None: # get current day
         # opening price, current price
-        url = "http://finance.yahoo.com/d/quotes.csv?s=%s&f=ol1" % ( \
+        url = "http://finance.yahoo.com/d/quotes.csv?s=%s&f=ol1hgv" % ( \
             symbol, \
             )
         u = urllib.urlopen(url)
         data = u.readline()
         arg_list = []
         for arg in data.split(','):
+            if arg=='N/A':
+                return None
             arg_list.append(float(arg))
         return {
-            'open': arg_list[0],
-            'close': arg_list[1],
+            'date': date.today().strftime("%Y-%m-%d"),
+            'open': '%.2f' % float(arg_list[0]),
+            'close': '%.2f' % float(arg_list[1]),
+            'high': '%.2f' % float(arg_list[2]),
+            'low': '%.2f' % float(arg_list[3]),
+            'volume': int(arg_list[4]),
+            'adj_close': '%.2f' % float(arg_list[1]),
             }
     else:
         trading_period = 'd'
@@ -121,7 +128,8 @@ def get_historical_data_all(symbol, get_date=None):
         if re.search( r'404 Not Found', data):
             print 'symbol not found %s' % (symbol)
             print url
-            sys.exit()
+            return None
+            #sys.exit()
 
         arg_list = data.split(',')
 

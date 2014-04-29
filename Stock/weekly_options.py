@@ -7,15 +7,15 @@ import os.path
 
 #
 # Usage:
-# python weekly_options.py start_date={yyyy-mm-ff}
-#  if no date given, it will use current day
-#  if no week_range given, will scan 1, 2, 3 and 4 weeks
+# python weekly_options.py start_date=2014-03-01 end_date=2014-04-01 write_to=weekly.2014-03.csv
+# This will loop through until end_date.  end_date will not run.
 #
-# Example:
-#  python weekly_options.py start_date=2013-01-01
+# python weekly_options.py start_date=2014-03-01 write_to=weekly.2014-03-01.csv
+# This will run a single day
 #
 
 start_date = None
+end_date = None
 for arg in sys.argv:
     if re.match('^start_date', arg):
         start_date = arg.split('=')[1]
@@ -24,6 +24,22 @@ for arg in sys.argv:
             sys.exit()
         else:
             start_date = datetime.strptime(start_date, '%Y-%m-%d')
+    if re.match('^end_date', arg):
+        end_date = arg.split('=')[1]
+        if re.match('\d\d\d\d-\d\d-\d\d', end_date) is None:
+            print "end_date must be in the format yyyy-mm-dd"
+            sys.exit()
+        else:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+    if re.match('^write_to', arg):
+        write_to = arg.split('=')[1]
+
+if start_date is None:
+    print "Must enter start_date\n"
+    sys.exit()
+
+if end_date is None:
+    end_date = datetime.today() + timedelta(days=1)
 
 # key -> value
 # key is the way the symbol appears on CBOE's site
@@ -734,19 +750,22 @@ data = []
 i=1
 get_date = start_date
 
-write_file = "./output/weekly.sql"
+write_file = "./output/"+write_to
 file = open(write_file, "w")
-while get_date.date() < datetime.today().date():
+while get_date.date() < end_date.date():
+    if nr2stock.is_market_closed(get_date):
+        get_date += timedelta(days=1)
+        continue
     for symbol in symbol_order:
         if symbol_list.get(symbol, None) is None:
-            continue
-        if nr2stock.is_market_closed(get_date):
-            get_date += timedelta(days=1)
             continue
 
         print "Processing %s %s" % (symbol_list.get(symbol, None), get_date.strftime("%Y-%m-%d"))
 
         get_data = nr2stock.get_historical_data_all(symbol_list[symbol], get_date)
+        if get_data is None:
+            continue
+            
         #insert_string =  "insert into quotes set symbol='%s', close_date='%s', open='%s', high='%s', low='%s', close='%s', volume='%s', adj_close='%s';" \
         insert_string =  "%s,%s,%s,%s,%s,%s,%s,%s\n" \
             % (symbol_list[symbol], get_data['date'], get_data['open'], get_data['high'], get_data['low'], get_data['close'], get_data['volume'], get_data['adj_close'])
