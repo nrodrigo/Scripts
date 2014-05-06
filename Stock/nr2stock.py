@@ -3,6 +3,11 @@ import urllib
 import sys
 import re
 import datetime
+import yql
+import httplib
+import urllib
+try: import simplejson as json
+except ImportError: import json
 
 def valid_market_date(check_date):
     # If we run into a market holiday, just go back a day until we're open
@@ -13,6 +18,15 @@ def valid_market_date(check_date):
 
 def is_market_closed(check_date):
     close_dates  = {
+        '2011-01-17': 1,
+        '2011-02-21': 1,
+        '2011-04-22': 1,
+        '2011-05-30': 1,
+        '2011-07-04': 1,
+        '2011-09-05': 1,
+        '2011-11-24': 1,
+        '2011-11-25': 1,
+        '2011-12-26': 1,
         '2012-01-02': 1,
         '2012-01-16': 1,
         '2012-02-20': 1,
@@ -45,6 +59,17 @@ def is_market_closed(check_date):
         return True
     else:
         return False
+
+def most_recent_market_date():
+    days_back = 0
+    while (1):
+        get_date = date.today() - timedelta(days_back)
+        if is_market_closed(get_date):
+            days_back += 1
+        else:
+            break
+    return get_date
+        
 
 def get_historical_data(symbol, get_date=None):
     if get_date.strftime("%Y-%m-%d")==date.today().strftime("%Y-%m-%d") or get_date is None: # get current day
@@ -142,3 +167,77 @@ def get_historical_data_all(symbol, get_date=None):
             'volume': int(arg_list[5]),
             'adj_close': '%.2f' % float(arg_list[6]),
             }
+
+def symbol_list():
+    file = open("./symbol_list.txt", "r")
+    ret = []
+    for symbol in file.read().split("\n"):
+        if symbol and re.match('^#', symbol) is None:
+            ret.append(symbol)
+    return ret
+
+#def get_options_chain(symbol):
+def get_strike_interval(symbol):
+
+    PUBLIC_API_URL = 'http://query.yahooapis.com/v1/public/yql'
+    DATATABLES_URL = 'store://datatables.org/alltableswithkeys'
+
+    yql = 'select * from yahoo.finance.options where symbol = \'%s\'' \
+          % (symbol)
+
+    conn = httplib.HTTPConnection('query.yahooapis.com')
+    queryString = urllib.urlencode({'q': yql, 'format': 'json', 'env': DATATABLES_URL})
+    conn.request('GET', PUBLIC_API_URL + '?' + queryString)
+    obj = json.loads(conn.getresponse().read())
+
+    try:
+        get_option_chain = obj['query']['results']['optionsChain']['option']
+    except KeyError:
+        return None
+    except TypeError:
+        return None
+
+    get_strikes = {}
+
+
+    for x in get_option_chain:
+        strike_price = float(x['strikePrice'])
+        if strike_price not in get_strikes:
+            get_strikes[strike_price] = 0
+        get_strikes[strike_price] += 1
+    interval = 0
+    prev = 0
+    i = 0
+    for x in reversed(sorted(get_strikes.keys())):
+        if prev==0:
+            prev = x
+        else:
+            interval = interval + (prev-x)
+            prev = x
+        i = i+1
+    return float("%.1f" % (interval/i))
+
+def calc_gain_loss(option_type, strike_price, current, fill_price):
+    cur_gain_loss = 0.00
+    if option_type=='long call':
+        if current <= strike_price:
+            cur_gain_loss = fill_price*100*-1
+        else:
+            cur_gain_loss = (current-strike_price-fill_price)*100
+    elif option_type=='long put':
+        if current >= strike_price:
+            cur_gain_loss = fill_price*100*-1
+        else:
+            cur_gain_loss = (strike_price-current-fill_price)*100
+    elif option_type=='short call':
+        if current <= strike_price:
+            cur_gain_loss = fill_price*100
+        else:
+            cur_gain_loss = (strike_price-current+fill_price)*100
+    elif option_type=='short put':
+        if current >= strike_price:
+            cur_gain_loss = fill_price*100
+        else:
+            cur_gain_loss = (current-strike_price-fill_price)*100
+    return cur_gain_loss
+
