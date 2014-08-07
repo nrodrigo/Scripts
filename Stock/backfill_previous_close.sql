@@ -23,8 +23,8 @@ from (
   ) qprev on q.symbol = qprev.symbol and qprev.close_date < q.close_date
   where 1=1
     -- All null columns
-    -- and q.prev_close_date is null
-    and q.close_date >= curdate()
+    and q.prev_close_date is null
+    -- and q.close_date >= curdate()
   group by q.symbol, q.close_date) qcur
 join quotes qpre on qcur.symbol = qpre.symbol and qcur.prev_close_date = qpre.close_date
 order by 1, 2

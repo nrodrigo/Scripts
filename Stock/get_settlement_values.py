@@ -7,13 +7,13 @@ import os.path
 
 #
 # Usage:
-# python weekly_options.py start_date=2014-03-01 end_date=2014-04-01 write_to=weekly.2014-03.csv
+# python get_settlement_data.py start_date=2014-03-01 end_date=2014-04-01 write_to=weekly_settlement.2014-03.csv
 # This will loop through until end_date.  end_date will not run.
 #
 # This will run a single day
-# python weekly_options.py start_date=2014-03-01 write_to=weekly.2014-03-01.csv
+# python get_settlement_data.py start_date=2014-03-01 write_to=weekly_settlement.2014-03-01.csv
 #
-# python weekly_options.py start_date=2014-05-01 write_to=current.csv
+# python get_settlement_data.py start_date=2014-05-01 write_to=current_settlement.csv
 #
 
 start_date = None
@@ -49,14 +49,15 @@ get_date = start_date
 
 write_file = "./output/"+write_to
 file = open(write_file, "w")
-symbol_list = nr2stock.symbol_list()
+symbol_list = nr2stock.settlement_list()
 while get_date.date() < end_date.date():
     if nr2stock.is_market_closed(get_date):
         get_date += timedelta(days=1)
         continue
     for symbol in symbol_list:
         print "Processing %s %s" % (symbol, get_date.strftime("%Y-%m-%d"))
-        get_data = nr2stock.get_historical_data_all(symbol, get_date)
+        #get_data = nr2stock.get_settlement_values(symbol, get_date)
+        get_data = nr2stock.get_settlement_values(symbol)
         if get_data is None:
             continue
             

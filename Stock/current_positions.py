@@ -51,9 +51,9 @@ for row in cur.fetchall():
     stock_data = nr2stock.get_historical_data_all(quote['symbol'], check_date)
     current = float(stock_data['close'])
     print "Current: $%s" % ("%.2f" % current)
-    if quote['outlook']=='bull':
+    if quote['type']=='credit':
         debit_credit = (quote['high_fill']-quote['low_fill'])*100
-    elif quote['outlook']=='bear':
+    elif quote['type']=='debit':
         debit_credit = (quote['low_fill']-quote['high_fill'])*100
     debit_credit = float(debit_credit) * qty
     print "Debit(-)/Credit(+): $%s" % ("%.2f" % debit_credit)
@@ -68,8 +68,10 @@ for row in cur.fetchall():
             actual_gain = nr2stock.calc_gain_loss('long put', low_strike, current, low_fill) + \
                 nr2stock.calc_gain_loss('short put', high_strike, current, high_fill)
         else:
-            actual_gain = nr2stock.calc_gain_loss('short call', low_strike, current, low_fill) + \
-                nr2stock.calc_gain_loss('long call', high_strike, current, high_fill)
+            actual_gain = nr2stock.calc_gain_loss('short put', high_strike, current, high_fill) - \
+                nr2stock.calc_gain_loss('long put', low_strike, current, low_fill)
+            if actual_gain*qty>debit_credit:
+                actual_gain = debit_credit/qty # <-- total hack
     else:
         max_gain = ((high_strike-low_strike)*100)+debit_credit
         max_loss = -1*debit_credit
@@ -81,7 +83,9 @@ for row in cur.fetchall():
                 nr2stock.calc_gain_loss('long call', high_strike, current, high_fill)
     actual_gain = actual_gain*qty
     if (actual_gain<0):
-        alert = "(!!!)"
+        alert = "(Losing!!!)"
+    elif ((quote['outlook']=='bull' and current<(high_strike+1)) or (quote['outlook']=='bear' and current>(low_strike-1))):
+        alert = "(Within $1 of boundary!!!)"
     else:
         alert = ""
     print "Max Potential Gain/Loss/Risk: $%s / $%s / %s%%" % ("%.2f" % max_gain, "%.2f" % max_loss, "%.2f" % ((max_gain/max_loss)*100))
@@ -96,6 +100,6 @@ print "Total Potential Gain: $%s" % ("%.2f" % total_gain)
 print "Total Potential Loss: $%s" % ("%.2f" % total_loss)
 print "Total Potential Risk: %s%%" % ("%.2f" % ((total_gain/total_loss)*100))
 print ""
-print "Total Acutal Gain: $%s" % ("%.2f" % total_actual_gain)
+print "Total Actual Gain: $%s" % ("%.2f" % total_actual_gain)
 print "Total Actual Risk: %s%%" % ("%.2f" % ((total_actual_gain/total_loss)*100))
 

@@ -176,6 +176,14 @@ def symbol_list():
             ret.append(symbol)
     return ret
 
+def settlement_list():
+    file = open("./settlement_list.txt", "r")
+    ret = []
+    for symbol in file.read().split("\n"):
+        if symbol and re.match('^#', symbol) is None:
+            ret.append(symbol)
+    return ret
+
 #def get_options_chain(symbol):
 def get_strike_interval(symbol):
 
@@ -241,3 +249,51 @@ def calc_gain_loss(option_type, strike_price, current, fill_price):
             cur_gain_loss = (current-strike_price-fill_price)*100
     return cur_gain_loss
 
+
+def get_settlement_values(symbol):
+
+    PUBLIC_API_URL = 'http://query.yahooapis.com/v1/public/yql'
+    DATATABLES_URL = 'store://datatables.org/alltableswithkeys'
+
+    #yql = 'select * from yahoo.finance.quotes where symbol = \'%s\'' \
+    #      % (symbol)
+    yql = 'select * from yahoo.finance.quotes where symbol = \'%s\' and date>=\'2014-05-01\' ' \
+          % (symbol)
+
+    conn = httplib.HTTPConnection('query.yahooapis.com')
+    queryString = urllib.urlencode({'q': yql, 'format': 'json', 'env': DATATABLES_URL})
+    conn.request('GET', PUBLIC_API_URL + '?' + queryString)
+    obj = json.loads(conn.getresponse().read())
+
+    print obj
+    #try:
+    #    get_option_chain = obj['query']['results']['optionsChain']['option']
+    #except KeyError:
+    #    return None
+    #except TypeError:
+    #    return None
+
+    return 1
+
+def get_options_chain_values(symbol):
+
+    PUBLIC_API_URL = 'http://query.yahooapis.com/v1/public/yql'
+    DATATABLES_URL = 'store://datatables.org/alltableswithkeys'
+
+    #yql = 'select * from yahoo.finance.options_chain where symbol=\'%s\'' % (symbol)
+    yql = 'select * from yahoo.finance.options where symbol=\'RUT\' and expiration=\'2014-08\'' # % (symbol)
+
+    conn = httplib.HTTPConnection('query.yahooapis.com')
+    queryString = urllib.urlencode({'q': yql, 'format': 'json', 'env': DATATABLES_URL})
+    conn.request('GET', PUBLIC_API_URL + '?' + queryString)
+    obj = json.loads(conn.getresponse().read())
+
+    print obj
+    #try:
+    #    get_option_chain = obj['query']['results']['optionsChain']['option']
+    #except KeyError:
+    #    return None
+    #except TypeError:
+    #    return None
+
+    return 1
