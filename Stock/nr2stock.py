@@ -275,20 +275,20 @@ def get_settlement_values(symbol):
 
     return 1
 
-def get_options_chain_values(symbol):
+def get_options_chain_values(symbol, expiration_date):
 
     PUBLIC_API_URL = 'http://query.yahooapis.com/v1/public/yql'
     DATATABLES_URL = 'store://datatables.org/alltableswithkeys'
 
-    #yql = 'select * from yahoo.finance.options_chain where symbol=\'%s\'' % (symbol)
-    yql = 'select * from yahoo.finance.options where symbol=\'RUT\' and expiration=\'2014-08\'' # % (symbol)
+    yql = 'select * from yahoo.finance.options where symbol=\'%s\' and expiration=\'%s\'' % (symbol, expiration_date)
+    #yql = 'select * from yahoo.finance.options where symbol=\'RUT\' and expiration=\'2014-08\'' # % (symbol)
 
     conn = httplib.HTTPConnection('query.yahooapis.com')
     queryString = urllib.urlencode({'q': yql, 'format': 'json', 'env': DATATABLES_URL})
     conn.request('GET', PUBLIC_API_URL + '?' + queryString)
     obj = json.loads(conn.getresponse().read())
 
-    print obj
+    return obj
     #try:
     #    get_option_chain = obj['query']['results']['optionsChain']['option']
     #except KeyError:
