@@ -1,7 +1,5 @@
 package product
-import grails.rest.*
 
-@Resource(uri='/item', formats=['json', 'html', 'xml'])
 class Item {
     
     String name
@@ -10,7 +8,11 @@ class Item {
     Date receiptDate
     double cost
     double price
-    
+
+    def list() {
+        log.info "test..."
+    }
+
     static constraints = {
     }
 }
